@@ -1,30 +1,37 @@
 # Paths
 INCL = include
 SRC = src
-MODULES = src
+MODULES = modules
 ODIR = build
 
 # Compiler
 CC = gcc
 
 # Compile options
-CFLAGS = -Wall -g -I$(INCL) -I$(MODULES)/main
+CFLAGS = -Wall -g
+
 # Valgrind flags
 VALFLAGS = --leak-check=full --track-origins=yes --trace-children=yes -s
 
-OBJS = $(MODULES)/main.o
+OBJS = $(MODULES)/client_dir/client.o
+OBJS += $(MODULES)/server_dir/server.o
+OBJS += $(MODULES)/utils/utilities.o
 
-all: main
+all: server client
 	mkdir -p $(ODIR)
 	mv $(OBJS) $(ODIR)
 
-main: clean $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) main
+server: clean $(OBJS)
+	$(CC) $(CFLAGS) $(MODULES)/server_dir/server.o -o server
+
+client: clean $(OBJS)
+	$(CC) $(CFLAGS) $(MODULES)/client_dir/client.o -o client
 
 valgrind: all
-	valgrind $(VALFLAGS) ./main
+	valgrind $(VALFLAGS) ./server
 
 # Delete executable & object files
 clean:
-	rm -f main
+	rm -f server
+	rm -f client
 	rm -rf $(ODIR)
