@@ -22,10 +22,10 @@ all: server client
 	mv $(OBJS) $(ODIR)
 
 server: clean $(OBJS)
-	$(CC) $(CFLAGS) $(MODULES)/server_dir/server.o -o server
+	$(CC) $(CFLAGS) $(MODULES)/server_dir/server.o $(MODULES)/utils/utilities.o -o server -lpthread
 
 client: clean $(OBJS)
-	$(CC) $(CFLAGS) $(MODULES)/client_dir/client.o -o client
+	$(CC) $(CFLAGS) $(MODULES)/client_dir/client.o $(MODULES)/utils/utilities.o -o client -lpthread
 
 valgrind: all
 	valgrind $(VALFLAGS) ./server

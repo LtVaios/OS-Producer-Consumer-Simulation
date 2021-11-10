@@ -5,6 +5,8 @@
 
 char* get_specific_line(FILE* f,int no_line);
 int get_number_lines(FILE* f);
-bool isPositiveNumber(char number[]);
+int isPositiveNumber(char number[]);
+char* number_to_str(int i);
+void print_sem_value(sem_t* s);
 
 #endif
