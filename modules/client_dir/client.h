@@ -3,6 +3,7 @@
 
 #define LINE_SZ 100
 #define SHMKEY (key_t)0001
-#define SEM_NAME "sem_one"
+#define SSEM_NAME "ssem"
+#define CSEM_NAME "csem"
 
 #endif

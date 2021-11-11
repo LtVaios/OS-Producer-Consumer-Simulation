@@ -21,9 +21,9 @@ struct shared{
 
 typedef struct shared* shared_mem;
 
-//1st arg: filename, 2nd arg: K (no of children), 3rd arg: N (no of each child's transactions)
+//1st arg: filename, 2nd arg: K (number of children), 3rd arg: N (number of each child's transactions)
 int main(int argc, char *argv[]) {
-    //Arguments error handling
+    //Command line arguments error handling
     if(argc > 4) {
         printf("Too many arguments!\n");
         exit(-1);
@@ -49,21 +49,11 @@ int main(int argc, char *argv[]) {
     //variables, semaphores and shared memory initialization
     int k = atoi(argv[2]);
     int n = atoi(argv[3]);
+    char* str_no_of_lines = number_to_str(get_number_lines(f));
     int pid;
-    int status;
+    int stat;
 
-    //semaphore
-    create_sem(SEM_NAME);
-    sem_t *semaphore = sem_open(SEM_NAME, O_RDWR, 1);
-    if (semaphore == SEM_FAILED) {
-        perror("Error! sem_open failed in parent process");
-        exit(EXIT_FAILURE);
-    }
-    //we post once the semaphore so it has 1 as initial value
-    if (sem_post(semaphore) < 0)
-        perror("Error! sem_post failed on child");
-
-    //shared memory
+    //shared memory init
     void *shared_memory_addr = (void *)0;
     int shmid;
     shmid = shmget(SHMKEY, sizeof(struct shared), 0666 | IPC_CREAT);
@@ -77,10 +67,24 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     shared_mem sm = (shared_mem) shared_memory_addr;
-    printf("Shared memory segment with id %d attached at %p\n", shmid, shared_memory_addr);
 
-    char* str_no_of_lines = number_to_str(get_number_lines(f));
-    //make the children
+    //server semaphore init
+    create_sem(SSEM_NAME,0);
+    sem_t* serv_sem = sem_open(SSEM_NAME, O_RDWR);
+    if (serv_sem == SEM_FAILED) {
+        perror("Error! sem_open failed in parent process");
+        exit(EXIT_FAILURE);
+    }
+
+    //client semaphore init
+    create_sem(CSEM_NAME,1);
+    sem_t* cli_sem = sem_open(CSEM_NAME, O_RDWR);
+    if (cli_sem == SEM_FAILED) {
+        perror("Error! sem_open failed in parent process");
+        exit(EXIT_FAILURE);
+    }
+
+    //make the clients(children)
     for (int i = 0; i < k; i++) {
         if ((pid = fork()) < 0) {
             perror("Error! Could not fork");
@@ -96,31 +100,32 @@ int main(int argc, char *argv[]) {
     }
 
     //parent communication with children section
+    char* line ="empty";
     for(int j=0 ; j < k*n ; j++) {
         //Entry section
-        if (sem_wait(semaphore) < 0) {
+        //printf("parent initial serv value:");
+        //print_sem_value(serv_sem);
+        if (sem_wait(serv_sem) < 0) {
             perror("Error! sem_wait failed on parent");
             continue;
         }
-        //Critical section 1
-        char* line = malloc(MAX_L_CHARS * sizeof(char));
-        line = get_specific_line(f, sm->line_req);
-        strncpy(sm->line_text,line,MAX_L_CHARS);
-        printf("dinw line %d\n",sm->line_req);
-        free(line);
 
+        //Critical section 1
+        printf("dinw line %d\n",sm->line_req);
+        line = get_specific_line(f, sm->line_req);
+        memcpy(sm->line_text,line,MAX_L_CHARS);
 
         //Exit section
-        if (sem_post(semaphore) < 0)
+        if (sem_post(cli_sem) < 0)
             perror("Error! sem_post failed on parent");
     }
 
     // Wait for all the children to finish
-    for (;;) {
-        pid = wait(&status);
+    while( 1 ) {
+        pid = wait(&stat);
         if (pid < 0) {
             if (errno == ECHILD) {
-                printf("All children exited successfully!\n");
+                printf("All clients exited.\n");
                 break;
             }
             else {
@@ -128,35 +133,53 @@ int main(int argc, char *argv[]) {
             }
         }
         else {
-            printf("Child %d exited with status %d\n", pid, status);
+            printf("Client: %d, exited with status: %d\n", pid, stat);
         }
-    }
-
-    //shared memory detach
-    if (shmdt(shared_memory_addr) == -1) {
-        printf("Error! shmdt failed\n");
-        exit(EXIT_FAILURE);
     }
 
     //freeing all the memory and destroying all sem, shm
     free(str_no_of_lines);
-    delete_sem(SEM_NAME);
+    delete_sem(SSEM_NAME, serv_sem);
+    delete_sem(CSEM_NAME, cli_sem);
+    delete_shm(shared_memory_addr,shmid);
     fclose(f);
     exit(EXIT_SUCCESS);
 }
 
-void create_sem(char* name){
-    sem_t *semaphore = sem_open(name, O_CREAT, SEM_PERMS, 1);
+void create_sem(char* name,int init_val){
+    //create
+    sem_t *semaphore = sem_open(name, O_CREAT | O_EXCL, SEM_PERMS, init_val);
     if (semaphore == SEM_FAILED) {
         perror("Error! sem_open failed in create_sem");
+        exit(EXIT_FAILURE);
+    }
+    //close
+    if (sem_close(semaphore) < 0) {
+        perror("Error! sem_close(3) in create_sem failed");
         exit(EXIT_FAILURE);
     }
     return;
 }
 
-void delete_sem(char* name){
-    if (sem_unlink(SEM_NAME) < 0) {
-        perror("Error! sem_unlink failed in delete_sem");
+void delete_sem(char* name,sem_t* sem){
+    if (sem_close(sem) < 0) {
+        perror("Error! sem_close(3) in delete_sem failed");
+        exit(EXIT_FAILURE);
+    }
+    if (sem_unlink(name) < 0) {
+        perror("Error! sem_unlink(3) in delete_sem failed");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void delete_shm(void* addr,int id){
+    //shared memory detach
+    if (shmdt(addr) == -1) {
+        printf("Error! shmdt failed\n");
+        exit(EXIT_FAILURE);
+    }
+    if(shmctl(id, IPC_RMID, 0) < 0){
+        perror ("SHM remove error.");
         exit(EXIT_FAILURE);
     }
 }

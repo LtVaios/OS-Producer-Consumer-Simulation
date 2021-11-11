@@ -26,7 +26,6 @@ char* get_specific_line(FILE* f,int no_line) {
     while ( fgets(line, MAX_L_CHARS, f) != NULL ) {
         if(count == no_line){
             result = &line[0];
-            printf("result grammi: %s\n",result);
             rewind(f);
             return result;
         }
@@ -38,8 +37,8 @@ char* get_specific_line(FILE* f,int no_line) {
 int isPositiveNumber(char number[]) {
     int i = 0;
 
-    //reject negative numbers
-    if (number[0] == '-')
+    //reject negative numbers and zero
+    if (number[0] == '-' || number[0] == '0')
         return 0;
 
     for (; number[i] != 0; i++) {
@@ -61,9 +60,17 @@ char* number_to_str(int i){
 }
 
 
+int get_sem_value(sem_t* s){
+    int* tmp=malloc(1*sizeof (int));
+    sem_getvalue(s,tmp);
+    int ret = *tmp;
+    free(tmp);
+    return ret;
+}
+
 void print_sem_value(sem_t* s){
-    int* t=malloc(1*sizeof (int));
-    sem_getvalue(s,test);
-    printf("semaphore value:%d\n",*test);
-    free(t);
+    int* tmp=malloc(1*sizeof (int));
+    sem_getvalue(s,tmp);
+    printf("semaphore value:%d\n",*tmp);
+    free(tmp);
 }

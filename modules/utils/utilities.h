@@ -8,5 +8,6 @@ int get_number_lines(FILE* f);
 int isPositiveNumber(char number[]);
 char* number_to_str(int i);
 void print_sem_value(sem_t* s);
+int get_sem_value(sem_t* s);
 
 #endif

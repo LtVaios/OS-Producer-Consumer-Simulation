@@ -21,22 +21,14 @@ struct shared{
 
 typedef struct shared* shared_mem;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     int n = atoi(argv[0]);
     int number_of_lines = atoi(argv[1]);
-    clock_t t;
-    double full_time = 0;
+    time_t start,end,elapsed;
+    long int full_time=0;
     srand(time(NULL));
 
-    //opening the semaphore
-    sem_t *semaphore = sem_open(SEM_NAME, O_RDWR);
-    if (semaphore == SEM_FAILED) {
-        perror("Error! sem_open failed in child process");
-        exit(EXIT_FAILURE);
-    }
-
-    //getting access to the same shared memory segment as the parent
-    //shared memory
+    //getting access to shared memory segment
     void *shared_memory_addr = (void *)0;
     int shmid;
     shmid = shmget(SHMKEY, sizeof(struct shared), 0666 | IPC_CREAT);
@@ -51,38 +43,54 @@ int main(int argc, char *argv[]) {
     }
     shared_mem sm = (shared_mem) shared_memory_addr;
 
+    //opening the semaphores
+    sem_t* serv_sem = sem_open(SSEM_NAME, O_RDWR);
+    if (serv_sem == SEM_FAILED) {
+        perror("Error! sem_open for server sem failed in child process");
+        exit(EXIT_FAILURE);
+    }
+    sem_t* cli_sem = sem_open(CSEM_NAME, O_RDWR);
+    if (cli_sem == SEM_FAILED) {
+        perror("Error! sem_open for client sem failed in child process");
+        exit(EXIT_FAILURE);
+    }
+
     //main loop
     for(int i = 0; i < n; i++){
         //Entry section
-        t = clock();
-        if (sem_wait(semaphore) < 0) {
+        time(&start);
+        //printf("child initial cli value:");
+        //print_sem_value(cli_sem);
+        if (sem_wait(cli_sem) < 0) {
             perror("Error! sem_wait failed on child");
             continue;
         }
         //Critical section 1
-        sm->line_req = rand()%(number_of_lines+1);
+        //asking the parent for a random line from the file
+        sm->line_req = (rand()%number_of_lines)+1;
         printf("zitaw line %d\n",sm->line_req);
 
         //Exit section
-        if (sem_post(semaphore) < 0)
+        if (sem_post(serv_sem) < 0)
             perror("Error! sem_post failed on child");
-
-
-
-        sleep(2);
-        //2
-        if (sem_wait(semaphore) < 0) {
+        //Entry section 2
+        if (sem_wait(cli_sem) < 0) {
             perror("Error! sem_wait failed on child");
             continue;
         }
-        printf("pira to line: %s\n",sm->line_text);
-        if (sem_post(semaphore) < 0)
+        //Critical section 2
+        printf("pira to line: %s",sm->line_text);
+        //Exit section 2
+        if (sem_post(cli_sem) < 0)
             perror("Error! sem_post failed on child");
-
-        full_time += (clock() - t);
+        time(&end);
+        elapsed = end - start;
+        full_time += elapsed;
     }
 
     //Remaining section
-    printf("This is the child %d with average time:%f\n",getpid(),full_time/n);
+    printf("This is the child %d with average time: %lf seconds.\n",getpid(),(double)full_time/n);
+    sem_close(serv_sem);
+    sem_close(cli_sem);
     exit(EXIT_SUCCESS);
 }

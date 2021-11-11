@@ -11,7 +11,7 @@ CC = gcc
 CFLAGS = -Wall -g
 
 # Valgrind flags
-VALFLAGS = --leak-check=full --track-origins=yes --trace-children=yes -s
+VALFLAGS = --leak-check=full --track-origins=yes --trace-children=yes --tool=memcheck --show-leak-kinds=all -s
 
 OBJS = $(MODULES)/client_dir/client.o
 OBJS += $(MODULES)/server_dir/server.o

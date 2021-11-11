@@ -5,9 +5,11 @@
 #define LINE_SZ 100
 #define SHMKEY (key_t)0001
 #define SEM_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
-#define SEM_NAME "sem_one"
+#define SSEM_NAME "ssem"
+#define CSEM_NAME "csem"
 
-void create_sem(char* name);
-void delete_sem(char* name);
+void create_sem(char* name,int init_val);
+void delete_sem(char* name,sem_t* sem);
+void delete_shm(void* addr,int id);
 
 #endif
