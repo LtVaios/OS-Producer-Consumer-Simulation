@@ -7,6 +7,7 @@
 #define SEM_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
 #define SSEM_NAME "ssem"
 #define CSEM_NAME "csem"
+#define CSEM_NAME_2 "csem_2"
 
 void create_sem(char* name,int init_val);
 void delete_sem(char* name,sem_t* sem);

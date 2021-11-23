@@ -54,13 +54,20 @@ int main(int argc, char* argv[]) {
         perror("Error! sem_open for client sem failed in child process");
         exit(EXIT_FAILURE);
     }
-
+    sem_t* cli_sem_2 = sem_open(CSEM_NAME_2, O_RDWR);
+    if (cli_sem == SEM_FAILED) {
+        perror("Error! sem_open for client sem failed in child process");
+        exit(EXIT_FAILURE);
+    }
+    int pid = getpid();
     //main loop
     for(int i = 0; i < n; i++){
         //Entry section
         time(&start);
-        //printf("child initial cli value:");
-        //print_sem_value(cli_sem);
+        if (sem_wait(cli_sem_2) < 0) {
+            perror("Error! sem_wait failed on child");
+            continue;
+        }
         if (sem_wait(cli_sem) < 0) {
             perror("Error! sem_wait failed on child");
             continue;
@@ -68,7 +75,7 @@ int main(int argc, char* argv[]) {
         //Critical section 1
         //asking the parent for a random line from the file
         sm->line_req = (rand()%number_of_lines)+1;
-        printf("zitaw line %d\n",sm->line_req);
+        printf("Client:%d is asking for line %d, %d fora\n", pid, sm->line_req,i);
 
         //Exit section
         if (sem_post(serv_sem) < 0)
@@ -79,9 +86,11 @@ int main(int argc, char* argv[]) {
             continue;
         }
         //Critical section 2
-        printf("pira to line: %s",sm->line_text);
+        printf("Client: %d is writing %s\n", pid, sm->line_text);
         //Exit section 2
         if (sem_post(cli_sem) < 0)
+            perror("Error! sem_post failed on child");
+        if (sem_post(cli_sem_2) < 0)
             perror("Error! sem_post failed on child");
         time(&end);
         elapsed = end - start;
@@ -89,7 +98,7 @@ int main(int argc, char* argv[]) {
     }
 
     //Remaining section
-    printf("This is the child %d with average time: %lf seconds.\n",getpid(),(double)full_time/n);
+    printf("Client %d exited with avg time: %lf seconds.\n",getpid(),(double)full_time/n);
     sem_close(serv_sem);
     sem_close(cli_sem);
     exit(EXIT_SUCCESS);

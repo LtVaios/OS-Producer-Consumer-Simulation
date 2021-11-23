@@ -5,5 +5,6 @@
 #define SHMKEY (key_t)0001
 #define SSEM_NAME "ssem"
 #define CSEM_NAME "csem"
+#define CSEM_NAME_2 "csem_2"
 
 #endif

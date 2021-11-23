@@ -16,6 +16,7 @@
 struct shared{
     //the line that children will request from the parent
     int line_req;
+    //The variable that the parent will write the line and clients will read from
     char line_text[LINE_SZ];
 };
 
@@ -83,6 +84,8 @@ int main(int argc, char *argv[]) {
         perror("Error! sem_open failed in parent process");
         exit(EXIT_FAILURE);
     }
+    //client second semaphore init
+    create_sem(CSEM_NAME_2,1);
 
     //make the clients(children)
     for (int i = 0; i < k; i++) {
@@ -103,15 +106,13 @@ int main(int argc, char *argv[]) {
     char* line ="empty";
     for(int j=0 ; j < k*n ; j++) {
         //Entry section
-        //printf("parent initial serv value:");
-        //print_sem_value(serv_sem);
         if (sem_wait(serv_sem) < 0) {
             perror("Error! sem_wait failed on parent");
             continue;
         }
 
         //Critical section 1
-        printf("dinw line %d\n",sm->line_req);
+        //printf("dinw line %d\n",sm->line_req);
         line = get_specific_line(f, sm->line_req);
         memcpy(sm->line_text,line,MAX_L_CHARS);
 
@@ -148,7 +149,7 @@ int main(int argc, char *argv[]) {
 
 void create_sem(char* name,int init_val){
     //create
-    sem_t *semaphore = sem_open(name, O_CREAT | O_EXCL, SEM_PERMS, init_val);
+    sem_t *semaphore = sem_open(name, O_CREAT, SEM_PERMS, init_val);
     if (semaphore == SEM_FAILED) {
         perror("Error! sem_open failed in create_sem");
         exit(EXIT_FAILURE);
