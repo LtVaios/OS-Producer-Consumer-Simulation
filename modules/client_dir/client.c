@@ -95,6 +95,7 @@ int main(int argc, char* argv[]) {
         time(&end);
         elapsed = end - start;
         full_time += elapsed;
+        usleep(1);
     }
 
     //Remaining section
