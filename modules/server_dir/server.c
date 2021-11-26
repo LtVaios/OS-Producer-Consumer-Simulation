@@ -84,6 +84,7 @@ int main(int argc, char *argv[]) {
         perror("Error! sem_open failed in parent process");
         exit(EXIT_FAILURE);
     }
+
     //client second semaphore init
     create_sem(CSEM_NAME_2,1);
 
@@ -111,8 +112,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        //Critical section 1
-        //printf("dinw line %d\n",sm->line_req);
+        //Critical section
         line = get_specific_line(f, sm->line_req);
         memcpy(sm->line_text,line,MAX_L_CHARS);
 
