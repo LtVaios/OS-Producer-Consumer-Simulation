@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     strcat( path, argv[1]);
     FILE *f  = fopen(path, "r");
     if (!f) {
-        printf("Error, could not open file!\n");
+        printf("Error, could not open text file!\n");
         exit(-1);
     }
 
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
     }
 
     //parent communication with children section
-    char* line ="empty";
+    char* line = "empty";
     for(int j=0 ; j < k*n ; j++) {
         //Entry section
         if (sem_wait(serv_sem) < 0) {
@@ -140,7 +140,15 @@ int main(int argc, char *argv[]) {
 
     //freeing all the memory and destroying all sem, shm
     free(str_no_of_lines);
+    if (sem_close(serv_sem) < 0) {
+        perror("Error! sem_close(3) in create_sem failed");
+        exit(EXIT_FAILURE);
+    }
     delete_sem(SSEM_NAME, serv_sem);
+    if (sem_close(cli_sem) < 0) {
+        perror("Error! sem_close(3) in create_sem failed");
+        exit(EXIT_FAILURE);
+    }
     delete_sem(CSEM_NAME, cli_sem);
     delete_shm(shared_memory_addr,shmid);
     fclose(f);
@@ -163,10 +171,6 @@ void create_sem(char* name,int init_val){
 }
 
 void delete_sem(char* name,sem_t* sem){
-    if (sem_close(sem) < 0) {
-        perror("Error! sem_close(3) in delete_sem failed");
-        exit(EXIT_FAILURE);
-    }
     if (sem_unlink(name) < 0) {
         perror("Error! sem_unlink(3) in delete_sem failed");
         exit(EXIT_FAILURE);

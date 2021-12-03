@@ -27,9 +27,8 @@ int main(int argc, char* argv[]) {
     int n = atoi(argv[0]);
     int number_of_lines = atoi(argv[1]);
     int pid = getpid();
-    struct timeval st, et;
-    int elapsed;
-    int full_time=0;
+    clock_t start_t, end_t, elapsed_t;
+    double fulltime;
     srand(pid*time(NULL));
 
     //getting access to shared memory segment
@@ -74,9 +73,9 @@ int main(int argc, char* argv[]) {
             perror("Error! sem_wait failed on child");
             continue;
         }
+        start_t = clock();
         //Critical section 1
         //asking the parent for a random line from the file
-        gettimeofday(&st,NULL);
         sm->line_req = (rand()%number_of_lines)+1;
         printf("Client%d is asking for line %d\n", pid, sm->line_req);
 
@@ -95,15 +94,16 @@ int main(int argc, char* argv[]) {
             perror("Error! sem_post failed on child");
         if (sem_post(cli_sem_2) < 0)
             perror("Error! sem_post failed on child");
-        gettimeofday(&et,NULL);
-        elapsed = ((et.tv_sec - st.tv_sec) * 1000000);
-        full_time += elapsed;
+        end_t = clock();
+        elapsed_t = (double)(end_t - start_t) / CLOCKS_PER_SEC;
+        fulltime += elapsed_t;
         usleep(1);
     }
 
     //Remaining section
-    printf("Client %d exited with avg time: %lf microseconds.\n",pid,(double)full_time/n);
+    printf("Client %d exited with avg time: %lf seconds.\n",pid,(double)fulltime/n);
     sem_close(serv_sem);
     sem_close(cli_sem);
+    sem_close(cli_sem_2);
     exit(EXIT_SUCCESS);
 }
